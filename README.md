@@ -1,5 +1,5 @@
 # DockerregistryV1
-*will install a private Dockerregistry V1 as a whole stack*
+**will install a private Dockerregistry V1 as a whole stack**
 
 
 - If you want to activate SSL certificates for NGINX, you need to provide them over a volume(see docker-compose file) and also change the DNS name accordingly

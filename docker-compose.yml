@@ -1,0 +1,57 @@
+data:
+  restart: always 
+  image: busybox 
+  volumes: 
+    - /srv/docker_registry:/data-cache 
+  command: "true"
+redis:
+  restart: always
+  image: redis:3.0
+backend:
+  restart: always
+  image: registry
+  expose:
+    - "5000"
+  links:
+    - redis
+  environment:
+    GUNICORN_OPTS: "[--preload]" 
+    SETTINGS_FLAVOR: local
+    STORAGE_PATH: /data-cache
+    SEARCH_BACKEND: sqlalchemy
+    CACHE_REDIS_HOST: cache
+    CACHE_REDIS_PORT: 6379
+    CACHE_LRU_REDIS_HOST: cache
+    CACHE_LRU_REDIS_PORT: 6379
+  volumes_from:
+    - data
+  volumes:
+    - ./registry/tags.py:/docker-registry/docker_registry/tags.py:ro
+    - ./registry/tags.py:/usr/local/lib/python2.7/dist-packages/docker_registry/tags.py:ro
+frontend:
+  restart: always
+  image: konradkleine/docker-registry-frontend:delete_multiple_items
+  environment:
+    ENV_DOCKER_REGISTRY_HOST: registry
+    ENV_DOCKER_REGISTRY_PORT: 5000
+  expose:
+    - "80"
+  links:
+    - backend:registry
+proxy:
+  restart: always
+  build: nginxDocker/
+  ports:
+    - "443:443"
+    - "8443:8443"
+  environment:
+    PUBLIC_IP_ADDR: docker-<whateverDNSName>.de
+    PROXY_SSL_PORT: 443
+    FRONTEND_ENV_SSL_PORT: 8443
+  links:
+    - frontend:frontend
+    - backend:registry
+###activate this rows if you wanna introduce SSLcertificates 
+#  volumes:
+#    - /<WHATEVER-DIR>/bundle.crt:/etc/ssl/certs/docker-registry:ro
+#    - /<WHATEVER-DIR>/dockerhub.key:/etc/ssl/private/docker-registry:ro
